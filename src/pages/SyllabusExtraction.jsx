@@ -1,59 +1,77 @@
+// eslint-disable-next-line no-unused-vars
 import React, { useState } from 'react';
-import { Upload, FileText, Check, Loader2, Plus, ArrowRight } from 'lucide-react';
+import { Upload, FileText, Check, Loader2, Plus, ArrowRight, AlertCircle, Key } from 'lucide-react';
 import { useAssignments } from '../context/AssignmentContext';
 import { useNavigate } from 'react-router-dom';
+import { extractTextFromPdf } from '../lib/pdf-utils';
+import { parseSyllabusWithLLM } from '../lib/llm-service';
 
 const SyllabusExtraction = () => {
   const { addAssignment } = useAssignments();
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1: Upload, 2: Processing, 3: Review
   const [text, setText] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [parsedData, setParsedData] = useState([]);
+  const [error, setError] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleSimulateExtraction = async () => {
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError(null);
+    try {
+      if (file.type === 'application/pdf') {
+        const extractedText = await extractTextFromPdf(file);
+        setText(extractedText);
+      } else {
+        // Plain text fallback
+        const textContent = await file.text();
+        setText(textContent);
+      }
+    } catch {
+      setError("Failed to read file. Please paste text manually.");
+    }
+  };
+
+  const handleExtraction = async () => {
     if (!text.trim()) return;
+    if (!apiKey.trim()) {
+      setError("Please enter an OpenAI API Key.");
+      return;
+    }
     
     setStep(2);
+    setIsProcessing(true);
+    setError(null);
 
-    // Simulate AI delay
-    setTimeout(() => {
-      // Mock result
-      const newAssignments = [
-        {
-          name: 'Midterm Exam',
-          type: 'exam',
-          weight: 25,
-          score: null,
-          due_date: new Date(Date.now() + 86400000 * 14).toISOString(), // 2 weeks
-          estimated_hours: 12,
-          course: 'Introduction to AI'
-        },
-        {
-          name: 'Final Research Paper',
-          type: 'project',
-          weight: 40,
-          score: null,
-          due_date: new Date(Date.now() + 86400000 * 45).toISOString(), // 1.5 months
-          estimated_hours: 25,
-          course: 'Introduction to AI'
-        },
-        {
-          name: 'Weekly Quiz 1',
-          type: 'homework',
-          weight: 5,
-          score: null,
-          due_date: new Date(Date.now() + 86400000 * 3).toISOString(), // 3 days
-          estimated_hours: 1,
-          course: 'Introduction to AI'
-        }
-      ];
+    try {
+      const data = await parseSyllabusWithLLM(text, apiKey);
       
-      setParsedData(newAssignments);
+      if (!data.assignments || !Array.isArray(data.assignments)) {
+        throw new Error("Invalid response format from AI.");
+      }
+
+      setParsedData(data.assignments);
       setStep(3);
-    }, 2500);
+    } catch (err) {
+      setError(err.message || "Failed to extract syllabus data.");
+      setStep(1);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleImport = () => {
+    // Basic Validation: Check if weights look crazy
+    const totalWeight = parsedData.reduce((sum, a) => sum + (a.weight || 0), 0);
+    if (totalWeight > 120) {
+      if (!confirm(`Total weight is ${totalWeight}%. Are you sure this is correct?`)) {
+        return;
+      }
+    }
+
     parsedData.forEach(a => addAssignment(a));
     navigate('/');
   };
@@ -87,10 +105,24 @@ const SyllabusExtraction = () => {
         
         {step === 1 && (
           <div className="space-y-6 animate-in fade-in zoom-in-95 duration-300">
-            <div className="border-2 border-dashed border-border rounded-xl p-12 text-center hover:bg-muted/30 transition-colors cursor-pointer group">
-              <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground group-hover:text-primary transition-colors" />
-              <p className="text-lg font-medium">Drop your syllabus PDF here</p>
-              <p className="text-sm text-muted-foreground mt-2">or click to browse files</p>
+            {error && (
+              <div className="bg-destructive/10 text-destructive p-3 rounded-md text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" /> {error}
+              </div>
+            )}
+
+            <div className="relative group">
+              <input 
+                type="file" 
+                accept=".pdf,.txt" 
+                onChange={handleFileUpload}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              <div className="border-2 border-dashed border-border rounded-xl p-12 text-center group-hover:bg-muted/30 transition-colors">
+                <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                <p className="text-lg font-medium">Drop your syllabus PDF here</p>
+                <p className="text-sm text-muted-foreground mt-2">or click to browse files</p>
+              </div>
             </div>
             
             <div className="relative">
@@ -99,15 +131,29 @@ const SyllabusExtraction = () => {
             </div>
 
             <textarea
-              className="w-full h-32 bg-background border border-border rounded-lg p-4 focus:ring-2 focus:ring-primary focus:outline-none resize-none"
+              className="w-full h-32 bg-background border border-border rounded-lg p-4 focus:ring-2 focus:ring-primary focus:outline-none resize-none text-sm font-mono"
               placeholder="Paste course schedule or syllabus text here..."
               value={text}
               onChange={e => setText(e.target.value)}
             />
 
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-2">
+                <Key className="w-4 h-4" /> OpenAI API Key <span className="text-muted-foreground font-normal">(Required for extraction)</span>
+              </label>
+              <input 
+                type="password" 
+                value={apiKey}
+                disabled={isProcessing}
+                onChange={e => setApiKey(e.target.value)}
+                placeholder="sk-..."
+                className="w-full bg-background border border-border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary focus:outline-none disabled:opacity-50"
+              />
+            </div>
+
             <button
-              onClick={handleSimulateExtraction}
-              disabled={!text.trim()}
+              onClick={handleExtraction}
+              disabled={!text.trim() || !apiKey.trim()}
               className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               Analyze Syllabus <ArrowRight className="w-4 h-4" />
@@ -124,7 +170,7 @@ const SyllabusExtraction = () => {
             </div>
             <div>
               <h3 className="text-xl font-bold">Analyzing Content...</h3>
-              <p className="text-muted-foreground mt-2">Identifying dates, assignments, and weights.</p>
+              <p className="text-muted-foreground mt-2">Connecting to LLM and parsing structure.</p>
             </div>
           </div>
         )}

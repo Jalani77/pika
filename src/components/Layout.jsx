@@ -22,10 +22,10 @@ const Layout = () => {
         </div>
         
         <nav className="flex-1 space-y-1">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {navItems.map((item) => (
             <NavLink
-              key={to}
-              to={to}
+              key={item.to}
+              to={item.to}
               className={({ isActive }) =>
                 cn(
                   "flex items-center gap-3 px-4 py-3 rounded-md transition-colors text-sm",
@@ -35,8 +35,8 @@ const Layout = () => {
                 )
               }
             >
-              <Icon size={18} />
-              <span>{label}</span>
+              <item.icon size={18} />
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>

@@ -1,0 +1,10 @@
+{
+  "name": "pika-root",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix pika run dev",
+    "build": "npm --prefix pika run build",
+    "lint": "npm --prefix pika run lint"
+  }
+}
+

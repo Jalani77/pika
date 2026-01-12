@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import type { Assignment, NotificationSettings } from '../types'
+import type { Assignment, NotificationSettings, PlannerSettings } from '../types'
 import { safeJsonParse } from '../lib/utils'
 import { createId } from './assignment'
 import { PikaStoreContext, type PikaStore } from './pika-context'
 
 const ASSIGNMENTS_KEY = 'pika.assignments.v1'
 const NOTIFS_KEY = 'pika.notifications.v1'
+const PLANNER_KEY = 'pika.planner.v1'
 
 function seedAssignments(): Assignment[] {
   const today = new Date()
@@ -21,6 +22,7 @@ function seedAssignments(): Assignment[] {
   return [
     {
       id: createId(),
+      created_at: new Date().toISOString(),
       name: 'Calculus Homework 4',
       type: 'homework',
       weight: 5,
@@ -30,6 +32,7 @@ function seedAssignments(): Assignment[] {
     },
     {
       id: createId(),
+      created_at: new Date().toISOString(),
       name: 'CS Project Milestone',
       type: 'project',
       weight: 20,
@@ -39,6 +42,7 @@ function seedAssignments(): Assignment[] {
     },
     {
       id: createId(),
+      created_at: new Date().toISOString(),
       name: 'Biology Exam 1',
       type: 'exam',
       weight: 25,
@@ -51,7 +55,14 @@ function seedAssignments(): Assignment[] {
 
 function readAssignments(): Assignment[] {
   const raw = safeJsonParse<Assignment[]>(localStorage.getItem(ASSIGNMENTS_KEY))
-  return Array.isArray(raw) && raw.length > 0 ? raw : seedAssignments()
+  const arr = Array.isArray(raw) && raw.length > 0 ? raw : seedAssignments()
+  // Migration: ensure created_at exists for progress rings.
+  const migrated = arr.map((a) => ({
+    ...a,
+    created_at: (a as unknown as { created_at?: string }).created_at ?? new Date().toISOString(),
+  }))
+  if (raw) localStorage.setItem(ASSIGNMENTS_KEY, JSON.stringify(migrated))
+  return migrated
 }
 
 function readNotifications(): NotificationSettings {
@@ -65,11 +76,33 @@ function readNotifications(): NotificationSettings {
   )
 }
 
+function defaultPlanner(): PlannerSettings {
+  // Reasonable defaults: weekday evenings + weekend late morning.
+  return {
+    sessionMinutes: 60,
+    focusWindows: {
+      0: [{ start: '10:00', end: '12:00' }], // Sun
+      1: [{ start: '18:00', end: '22:00' }], // Mon
+      2: [{ start: '18:00', end: '22:00' }], // Tue
+      3: [{ start: '18:00', end: '22:00' }], // Wed
+      4: [{ start: '18:00', end: '22:00' }], // Thu
+      5: [{ start: '18:00', end: '22:00' }], // Fri
+      6: [{ start: '10:00', end: '12:00' }], // Sat
+    },
+  }
+}
+
+function readPlanner(): PlannerSettings {
+  const raw = safeJsonParse<PlannerSettings>(localStorage.getItem(PLANNER_KEY))
+  return raw ?? defaultPlanner()
+}
+
 export function PikaProvider({ children }: { children: React.ReactNode }) {
   const [assignments, _setAssignments] = useState<Assignment[]>(() => readAssignments())
   const [notifications, _setNotifications] = useState<NotificationSettings>(() =>
     readNotifications(),
   )
+  const [planner, _setPlanner] = useState<PlannerSettings>(() => readPlanner())
 
   const setAssignments = (next: Assignment[]) => {
     _setAssignments(next)
@@ -110,6 +143,11 @@ export function PikaProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(NOTIFS_KEY, JSON.stringify(next))
   }
 
+  const setPlanner = (next: PlannerSettings) => {
+    _setPlanner(next)
+    localStorage.setItem(PLANNER_KEY, JSON.stringify(next))
+  }
+
   const value: PikaStore = {
     assignments,
     setAssignments,
@@ -119,6 +157,8 @@ export function PikaProvider({ children }: { children: React.ReactNode }) {
     setScore,
     notifications,
     setNotifications,
+    planner,
+    setPlanner,
   }
 
   return <PikaStoreContext.Provider value={value}>{children}</PikaStoreContext.Provider>

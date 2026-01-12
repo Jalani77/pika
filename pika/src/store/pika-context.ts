@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type { Assignment, NotificationSettings } from '../types'
+import type { Assignment, NotificationSettings, PlannerSettings } from '../types'
 
 export type PikaStore = {
   assignments: Assignment[]
@@ -11,6 +11,9 @@ export type PikaStore = {
 
   notifications: NotificationSettings
   setNotifications: (next: NotificationSettings) => void
+
+  planner: PlannerSettings
+  setPlanner: (next: PlannerSettings) => void
 }
 
 export const PikaStoreContext = createContext<PikaStore | null>(null)

@@ -8,7 +8,8 @@ export function Card({
   return (
     <div
       className={cn(
-        'rounded-xl border border-zinc-800/70 bg-zinc-950/40 shadow-sm backdrop-blur',
+        // Glassmorphism: subtle blur + border + soft gradient + hover lift
+        'rounded-2xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-white/0 shadow-[0_10px_30px_-20px_rgba(0,0,0,0.8)] backdrop-blur-xl transition will-change-transform hover:-translate-y-0.5 hover:border-white/15',
         className,
       )}
       {...props}

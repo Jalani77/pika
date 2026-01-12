@@ -17,6 +17,7 @@ export function createAssignment(input: {
 }): Assignment {
   return {
     id: createId(),
+    created_at: new Date().toISOString(),
     name: input.name,
     type: input.type,
     weight: input.weight,

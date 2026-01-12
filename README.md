@@ -18,3 +18,11 @@ npm run dev
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
 - **State**: React Context with LocalStorage persistence
+
+## Input Engine (LLM parsing)
+
+To enable syllabus-to-assignments parsing, set either:
+- `VITE_OPENAI_API_KEY` (optional `VITE_OPENAI_MODEL`)
+- `VITE_GEMINI_API_KEY` (optional `VITE_GEMINI_MODEL`)
+
+Or set `VITE_PIKA_LLM_ENDPOINT` to your own serverless proxy that returns the JSON array.

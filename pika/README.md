@@ -24,5 +24,11 @@ npm run dev
 
 ## Notes
 
-- **Syllabus parsing is mocked**: paste text (or load the example) to populate the app.
+- **Input Engine**:
+  - Upload **PDF/DOCX** and Pika extracts text client-side (PDF.js + Mammoth).
+  - Then Pika calls an LLM to output a **strict JSON array** of assignments and validates it before populating the app.
+  - Configure one of:
+    - `VITE_OPENAI_API_KEY` (+ optional `VITE_OPENAI_MODEL`)
+    - `VITE_GEMINI_API_KEY` (+ optional `VITE_GEMINI_MODEL`)
+    - or `VITE_PIKA_LLM_ENDPOINT` (your own serverless proxy that returns JSON)
 - **Twilio is simulated**: no messages are sent; payloads are logged in the browser console.

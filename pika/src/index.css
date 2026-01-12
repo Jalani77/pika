@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Dark-mode, shadcn-ish defaults (dark by default) */
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica,
+    Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: #09090b; /* zinc-950-ish */
+  color: #fafafa; /* zinc-50-ish */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.35); /* indigo-500 w/ alpha */
+}

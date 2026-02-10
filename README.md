@@ -1,5 +1,5 @@
 # Pika
-
+SYLLABUS
 Pika is a dark-mode student dashboard that turns assignments into a live urgency view, a predictive grade calculator, an input “wizard” for syllabus extraction, an automated weekly study planner, and a notification settings center.
 
 ## Run locally
